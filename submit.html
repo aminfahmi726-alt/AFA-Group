@@ -646,6 +646,79 @@
             height: auto;
             }
 
+        /* Styling untuk No IC Kotak */
+        .ic-box-container {
+            display: flex;
+            gap: 0.25rem;
+            flex-wrap: wrap;
+            padding: 1rem 0;
+        }
+
+        .ic-box {
+            width: 2.8rem;
+            height: 2.8rem;
+            border: 1.5px solid #e0e0e0;
+            border-radius: 4px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 500;
+            background-color: white;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .ic-box:focus-within {
+            border-color: #1976d2;
+            box-shadow: 0 0 0 3px rgba(25,118,210,0.1);
+        }
+
+        .ic-box input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 500;
+            padding: 0;
+            background-color: transparent;
+        }
+
+        .ic-box input::placeholder {
+            color: #ccc;
+        }
+
+        #no_ic_actual {
+            display: none;
+        }
+
+        /* Display IC Boxes */
+        .display-ic-container {
+            display: flex;
+            gap: 0.25rem;
+            flex-wrap: wrap;
+            padding: 0.5rem 0;
+        }
+
+        .display-ic-box {
+            width: 2.5rem;
+            height: 2.5rem;
+            border: 1.5px solid #1976d2;
+            border-radius: 4px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 600;
+            background-color: #e3f2fd;
+            color: #1976d2;
+            box-sizing: border-box;
+        }
+
     </style>
 </head>
 <body>
@@ -680,7 +753,8 @@
 
                 <div class="form-group">
                     <label for="no_ic"><i class="fas fa-id-card"></i> No IC:</label>
-                    <input type="tel" id="no_ic" name="no_ic" required>
+                    <div class="ic-box-container" id="ic-box-container"></div>
+                    <input type="hidden" id="no_ic" name="no_ic" required>
                 </div>
 
                 <div class="form-group">
@@ -770,7 +844,7 @@
                 </div>
                 <div class="booking-info-item">
                     <label><i class="fas fa-id-card"></i> No IC:</label>
-                    <span id="display_no_ic">-</span>
+                    <div class="display-ic-container" id="display_no_ic_container"></div>
                 </div>
                 <div class="booking-info-item">
                     <label><i class="fas fa-envelope"></i> Alamat Emel:</label>
@@ -839,6 +913,93 @@
     </div>
 
     <script>
+        // Initialize IC Box Container (12 boxes for IC number)
+        function initializeICBoxes() {
+            const container = document.getElementById('ic-box-container');
+            const icInput = document.getElementById('no_ic');
+            
+            // Create 12 boxes
+            for (let i = 0; i < 12; i++) {
+                const box = document.createElement('div');
+                box.className = 'ic-box';
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.maxLength = '1';
+                input.inputMode = 'numeric';
+                input.placeholder = '-';
+                input.className = `ic-input-box ic-box-${i}`;
+                
+                input.addEventListener('input', function(e) {
+                    // Only allow numbers
+                    e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                    
+                    // Update hidden input
+                    updateICValue();
+                    
+                    // Auto-move to next box
+                    if (e.target.value && i < 11) {
+                        document.querySelector(`.ic-box-${i + 1}`).focus();
+                    }
+                });
+                
+                input.addEventListener('keydown', function(e) {
+                    // Handle backspace
+                    if (e.key === 'Backspace' && !e.target.value && i > 0) {
+                        document.querySelector(`.ic-box-${i - 1}`).focus();
+                    }
+                });
+                
+                input.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                    const numbers = pastedText.replace(/[^0-9]/g, '').substring(0, 12 - i);
+                    
+                    // Fill boxes with pasted numbers
+                    for (let j = 0; j < numbers.length && i + j < 12; j++) {
+                        document.querySelector(`.ic-box-${i + j}`).value = numbers[j];
+                    }
+                    updateICValue();
+                });
+                
+                box.appendChild(input);
+                container.appendChild(box);
+            }
+            
+            // Focus on first box
+            document.querySelector('.ic-box-0').focus();
+        }
+        
+        function updateICValue() {
+            const icInput = document.getElementById('no_ic');
+            let icValue = '';
+            for (let i = 0; i < 12; i++) {
+                const box = document.querySelector(`.ic-box-${i}`);
+                icValue += box.value || '';
+            }
+            icInput.value = icValue;
+        }
+        
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeICBoxes();
+        });
+
+        function displayICAsBoxes(icNumber) {
+            const container = document.getElementById('display_no_ic_container');
+            container.innerHTML = ''; // Clear previous content
+            
+            // Pad with zeros if needed to make 12 digits
+            const paddedIC = icNumber.padEnd(12, '');
+            
+            for (let i = 0; i < 12; i++) {
+                const box = document.createElement('div');
+                box.className = 'display-ic-box';
+                box.textContent = paddedIC[i] || '-';
+                container.appendChild(box);
+            }
+        }
+
         // Initialize Supabase
         const SUPABASE_URL = 'https://wrbxlfyeqnwuaezpokon.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyYnhsZnllcW53dWFlenBva29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0OTk0MTgsImV4cCI6MjA3ODA3NTQxOH0.WBC3FL3pE60oqRBpqDroE9dpuh1kwXlL_OXHjwmxfKU';
@@ -904,7 +1065,7 @@
 
                 // Update display information
                 document.getElementById('display_nama').textContent = submitData.nama;
-                document.getElementById('display_no_ic').textContent = submitData.no_ic;
+                displayICAsBoxes(submitData.no_ic);
                 document.getElementById('display_email').textContent = submitData.alamat_emel;
                 document.getElementById('display_phone').textContent = submitData.no_telefon;
                 document.getElementById('display_address').textContent = submitData.alamat_rumah;
